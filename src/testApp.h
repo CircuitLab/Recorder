@@ -6,7 +6,9 @@
 #include "ofxTimer.h"
 #include "ofxUI.h"
 
-// #define NI_ENABLE "niEnable"
+#define NI_ENABLE "niEnable"
+#define NI_VIEW_WIDTH 448
+#define NI_VIEW_HEIGHT 336
 
 class testApp : public ofBaseApp{
 
@@ -23,14 +25,17 @@ public:
 	void mousePressed(int x, int y, int button);
 	void mouseReleased(int x, int y, int button);
 	void windowResized(int w, int h);
-    
+        
     void timerReached(ofEventArgs &e);
 
     ofTrueTypeFont verdana;
     
-	ofxOpenNI openNIDevice;
+	ofxOpenNI openNIDevice, playContext;
+    string oniFileName, newOniFileName;
+    int numTotalFrames, currentFrame;
     
     ofxUICanvas *gui;
+    ofxUIImageButton *loadBtn, *playBtn, *pauseBtn, *recordBtn, *stopBtn, *rewindBtn, *forwardBtn;
     void setupGUI();
     void guiEvent(ofxUIEventArgs &e);
     
@@ -38,7 +43,6 @@ public:
     ofxTimer timer;
     float startTime, elapsedTime;
     bool isRecording;
-    
 };
 
 #endif
