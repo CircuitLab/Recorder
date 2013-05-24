@@ -1,2 +1,5 @@
 bin/*Debug.app
 .DS_Store
+bin/data/*.oni
+bin/data/*.mp4
+bin/data/*.mov

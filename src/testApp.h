@@ -3,12 +3,13 @@
 
 #include "ofMain.h"
 #include "ofxOpenNI.h"
-#include "ofxTimer.h"
 #include "ofxUI.h"
+#include "ofxVideoRecorder.h"
 
 #define NI_ENABLE "niEnable"
-#define NI_VIEW_WIDTH 448
-#define NI_VIEW_HEIGHT 336
+#define NI_VIEW_WIDTH 640
+#define NI_VIEW_HEIGHT 480
+
 
 class testApp : public ofBaseApp{
 
@@ -25,24 +26,27 @@ public:
 	void mousePressed(int x, int y, int button);
 	void mouseReleased(int x, int y, int button);
 	void windowResized(int w, int h);
-        
-    void timerReached(ofEventArgs &e);
-
+    
     ofTrueTypeFont verdana;
     
-	ofxOpenNI openNIDevice, playContext;
+	ofxOpenNI openNIDevice, openNIPlayer;
     string oniFileName, newOniFileName;
     int numTotalFrames, currentFrame;
+    bool isONIPlaying;
+    bool isDrawDepthOverlay;
+    
+    ofQTKitPlayer videoPlayer;
+    string movFileName;
+    float scale;
+    
+    ofxVideoRecorder videoRecorder;
+    ofImage rgbImg, depthImg;
+    ofImage combinedImg;
     
     ofxUICanvas *gui;
     ofxUIImageButton *loadBtn, *playBtn, *pauseBtn, *recordBtn, *stopBtn, *rewindBtn, *forwardBtn;
     void setupGUI();
     void guiEvent(ofxUIEventArgs &e);
-    
-    
-    ofxTimer timer;
-    float startTime, elapsedTime;
-    bool isRecording;
 };
 
 #endif
