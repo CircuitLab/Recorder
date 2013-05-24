@@ -4,7 +4,6 @@
 #include "ofMain.h"
 #include "ofxOpenNI.h"
 #include "ofxUI.h"
-#include "ofxVideoRecorder.h"
 
 #define NI_ENABLE "niEnable"
 #define NI_VIEW_WIDTH 640
@@ -39,7 +38,6 @@ public:
     string movFileName;
     float scale;
     
-    ofxVideoRecorder videoRecorder;
     ofImage rgbImg, depthImg;
     ofImage combinedImg;
     

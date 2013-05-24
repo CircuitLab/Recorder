@@ -30,14 +30,11 @@ void testApp::setupGUI()
 //--------------------------------------------------------------
 void testApp::setup()
 {
-    ofSetFrameRate(30);
+    ofSetFrameRate(60);
     ofSetVerticalSync(true);
     ofEnableSmoothing();
     ofBackground(255);
-    
     ofEnableAlphaBlending();
-    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-    
     ofSetLogLevel(OF_LOG_VERBOSE);
 
 #ifdef NI_ENABLE
@@ -71,11 +68,9 @@ void testApp::setup()
     
     videoPlayer.setPixelFormat(OF_PIXELS_RGBA);
     
-    verdana.loadFont(ofToDataPath("verdana.ttf"), 24);
+    verdana.loadFont(ofToDataPath("verdana.ttf"), 10);
     
     setupGUI();
-            
-    scale = 1920 * (NI_VIEW_WIDTH / 1920);
 }
 
 //--------------------------------------------------------------
@@ -109,11 +104,6 @@ void testApp::draw(){
 	ofSetColor(255, 255, 255);
 
 #ifdef NI_ENABLE
-    if (videoPlayer.isLoaded()) {
-        videoPlayer.draw(NI_VIEW_WIDTH - (853 - 640) / 2, 0, 853, NI_VIEW_HEIGHT);
-        // videoPlayer.draw(0, 0, videoPlayer.getWidth() * scale, videoPlayer.getHeight() * scale);
-    }
-    
     if (openNIDevice.isNewFrame()) {
         if (openNIDevice.isImageOn()) {
             openNIDevice.drawImage(0, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
@@ -140,11 +130,11 @@ void testApp::draw(){
 #endif
     
     ofSetColor(255);
-    ofDrawBitmapString(ofToString(openNIPlayer.getCurrentFrame() / 30.0f), 100, NI_VIEW_HEIGHT * 2);
-
-    ofSetColor(0, 255, 0);
-	string msg = " MILLIS: " + ofToString(ofGetElapsedTimeMillis()) + " FPS: " + ofToString(ofGetFrameRate());
-	verdana.drawString(msg, 20, ofGetHeight() - 26);
+    ofRect(0, 0, 200, 60);
+    
+    ofSetColor(0);
+	verdana.drawString("App    FPS: " + ofToString(ofGetFrameRate()), 10, 25);
+    verdana.drawString("OpenNI FPS: " + ofToString(openNIDevice.getFrameRate()), 10, 45);
 
 }
 

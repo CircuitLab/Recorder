@@ -7,12 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		15573E4717311F930037EF2F /* ofxTimer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 15573E4517311F930037EF2F /* ofxTimer.cpp */; };
 		15574127173151050037EF2F /* tinyxml.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 15574120173151050037EF2F /* tinyxml.cpp */; };
 		15574128173151050037EF2F /* tinyxmlerror.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 15574122173151050037EF2F /* tinyxmlerror.cpp */; };
 		15574129173151050037EF2F /* tinyxmlparser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 15574123173151050037EF2F /* tinyxmlparser.cpp */; };
 		1557412A173151050037EF2F /* ofxXmlSettings.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 15574125173151050037EF2F /* ofxXmlSettings.cpp */; };
-		157EE2B517447CEE00B751A2 /* ofxVideoRecorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 157EE2B017447CEE00B751A2 /* ofxVideoRecorder.cpp */; };
 		157EE3F717449C2700B751A2 /* libGhost32.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 157EE3C517449C2700B751A2 /* libGhost32.a */; };
 		157EE3F817449C2700B751A2 /* libGhost64.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 157EE3C717449C2700B751A2 /* libGhost64.a */; };
 		157EE3F917449C2700B751A2 /* libGhost32.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 157EE3C917449C2700B751A2 /* libGhost32.a */; };
@@ -1209,12 +1207,10 @@
 				E4B69E210A3A1BDC003C02F2 /* testApp.cpp in Sources */,
 				15A4223D1730FBDE00898F6F /* ofxOpenNI.cpp in Sources */,
 				15A4223E1730FBDE00898F6F /* ofxOpenNITypes.cpp in Sources */,
-				15573E4717311F930037EF2F /* ofxTimer.cpp in Sources */,
 				15574127173151050037EF2F /* tinyxml.cpp in Sources */,
 				15574128173151050037EF2F /* tinyxmlerror.cpp in Sources */,
 				15574129173151050037EF2F /* tinyxmlparser.cpp in Sources */,
 				1557412A173151050037EF2F /* ofxXmlSettings.cpp in Sources */,
-				157EE2B517447CEE00B751A2 /* ofxVideoRecorder.cpp in Sources */,
 				157EE3FE17449C2700B751A2 /* ofxDisplay.cpp in Sources */,
 				157EE3FF17449C2700B751A2 /* ofxDisplayManager.cpp in Sources */,
 				157EE40017449C2700B751A2 /* ofxDisplayManagerMac.mm in Sources */,
@@ -1264,7 +1260,7 @@
 					"-lpthread",
 					"-mtune=native",
 				);
-				SDKROOT = macosx;
+				SDKROOT = "";
 			};
 			name = Debug;
 		};
@@ -1298,7 +1294,7 @@
 					"-lpthread",
 					"-mtune=native",
 				);
-				SDKROOT = macosx;
+				SDKROOT = "";
 			};
 			name = Release;
 		};
@@ -1405,6 +1401,7 @@
 				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_9 = "\"$(SRCROOT)/../../../addons/ofxMovieExporter/libs/libav/lib/osx\"";
 				PREBINDING = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)Debug";
+				SDKROOT = "";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -1511,6 +1508,7 @@
 				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_9 = "\"$(SRCROOT)/../../../addons/ofxMovieExporter/libs/libav/lib/osx\"";
 				PREBINDING = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = "";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
