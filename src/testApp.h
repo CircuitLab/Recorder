@@ -1,50 +1,61 @@
-#ifndef _TEST_APP
-#define _TEST_APP
+#pragma once
+
+#define ENABLE_KINECT "niEnable"
+#define KINECT_VIEW_WIDTH 640
+#define KINECT_VIEW_HEIGHT 480
 
 #include "ofMain.h"
-#include "ofxOpenNI.h"
+#include "ofxOpenCv.h"
+#include "ofxKinect.h"
 #include "ofxUI.h"
 
-#define NI_ENABLE "niEnable"
-#define NI_VIEW_WIDTH 640
-#define NI_VIEW_HEIGHT 480
+// uncomment this to read from two kinects simultaneously
+//#define USE_TWO_KINECTS
 
-
-class testApp : public ofBaseApp{
-
+class testApp : public ofBaseApp {
 public:
+	
 	void setup();
 	void update();
 	void draw();
-    void exit();
-
-	void keyPressed  (int key);
-	void keyReleased(int key);
-	void mouseMoved(int x, int y );
+	void exit();
+	
+	void drawPointCloud();
+	
+	void keyPressed(int key);
 	void mouseDragged(int x, int y, int button);
 	void mousePressed(int x, int y, int button);
 	void mouseReleased(int x, int y, int button);
 	void windowResized(int w, int h);
+	
+	ofxKinect kinect;
+	
+#ifdef USE_TWO_KINECTS
+	ofxKinect kinect2;
+#endif
+	
+	ofxCvColorImage colorImg;
+	
+	ofxCvGrayscaleImage grayImage; // grayscale depth image
+	ofxCvGrayscaleImage grayThreshNear; // the near thresholded image
+	ofxCvGrayscaleImage grayThreshFar; // the far thresholded image
+	
+	ofxCvContourFinder contourFinder;
+	
+	bool bThreshWithOpenCV;
+	bool bDrawPointCloud;
+	
+	int nearThreshold;
+	int farThreshold;
+	
+	int angle;
+	
+	// used for viewing the point cloud
+	ofEasyCam easyCam;
     
-    ofTrueTypeFont verdana;
-    
-	ofxOpenNI openNIDevice, openNIPlayer;
-    string oniFileName, newOniFileName;
-    int numTotalFrames, currentFrame;
-    bool isONIPlaying;
-    bool isDrawDepthOverlay;
-    
-    ofQTKitPlayer videoPlayer;
-    string movFileName;
-    float scale;
-    
-    ofImage rgbImg, depthImg;
-    ofImage combinedImg;
-    
+private:
     ofxUICanvas *gui;
     ofxUIImageButton *loadBtn, *playBtn, *pauseBtn, *recordBtn, *stopBtn, *rewindBtn, *forwardBtn;
     void setupGUI();
     void guiEvent(ofxUIEventArgs &e);
 };
-
-#endif

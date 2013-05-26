@@ -3,7 +3,7 @@
 //--------------------------------------------------------------
 void testApp::setupGUI()
 {
-    gui = new ofxUICanvas(0, NI_VIEW_HEIGHT, ofGetWidth(), 100);
+    gui = new ofxUICanvas(0, KINECT_VIEW_WIDTH, ofGetWidth(), 100);
     
     loadBtn = new ofxUIImageButton(42, 42, true, "gui/load.png", "LOAD");
     playBtn = new ofxUIImageButton(42, 42, true, "gui/play.png", "PLAY");
@@ -28,309 +28,265 @@ void testApp::setupGUI()
 }
 
 //--------------------------------------------------------------
-void testApp::setup()
-{
-    ofSetFrameRate(60);
-    ofSetVerticalSync(true);
-    ofEnableSmoothing();
-    ofBackground(255);
-    ofEnableAlphaBlending();
-    ofSetLogLevel(OF_LOG_VERBOSE);
-
-#ifdef NI_ENABLE
-    openNIDevice.setupFromXML("openni/config/ofxopenni_config.xml");
-    openNIDevice.addDepthGenerator();
-    openNIDevice.addImageGenerator();
-    openNIDevice.setDepthColoring(COLORING_CYCLIC_RAINBOW);
-    //openNIDevice.addDepthThreshold(500, 1000);
-    openNIDevice.start();
-    openNIDevice.setRegister(true);
-    // openNIDevice.addInfraGenerator(); // and uncomment this to see infrared generator
-                                        // or press the 'i' key when running
+void testApp::setup() {
+	ofSetLogLevel(OF_LOG_VERBOSE);
+	
+	// enable depth->video image calibration
+	kinect.setRegistration(true);
     
-    ofxOpenNIDepthThreshold depthThreshold = ofxOpenNIDepthThreshold(0, 10000, true, true, true, true, true);
-    openNIDevice.addDepthThreshold(depthThreshold);
-    // ofxOpenNIDepthThreshold is overloaded, has defaults and can take a lot of different parameters, eg:
-    // (ofxOpenNIROI OR) int _nearThreshold, int _farThreshold, bool _bUsePointCloud = false, bool _bUseMaskPixels = true,
-    // bool _bUseMaskTexture = true, bool _bUseDepthPixels = false, bool _bUseDepthTexture = false,
-    // int _pointCloudDrawSize = 2, int _pointCloudResolution = 2
-    
-    openNIPlayer.setup();
-    openNIPlayer.setLogLevel(OF_LOG_ERROR);
-    openNIPlayer.setRegister(true);
-    
-    isONIPlaying = false;
-    isDrawDepthOverlay = true;
-    
-    rgbImg.allocate(NI_VIEW_WIDTH, NI_VIEW_HEIGHT, OF_IMAGE_COLOR_ALPHA);
-    depthImg.allocate(NI_VIEW_WIDTH, NI_VIEW_HEIGHT, OF_IMAGE_COLOR_ALPHA);
+	kinect.init();
+	//kinect.init(true); // shows infrared instead of RGB video image
+	//kinect.init(false, false); // disable video image (faster fps)
+	
+	kinect.open();		// opens first available kinect
+	//kinect.open(1);	// open a kinect by id, starting with 0 (sorted by serial # lexicographically))
+	//kinect.open("A00362A08602047A");	// open a kinect using it's unique serial #
+	
+#ifdef USE_TWO_KINECTS
+	kinect2.init();
+	kinect2.open();
 #endif
-    
-    videoPlayer.setPixelFormat(OF_PIXELS_RGBA);
-    
-    verdana.loadFont(ofToDataPath("verdana.ttf"), 10);
-    
-    setupGUI();
+	
+	colorImg.allocate(kinect.width, kinect.height);
+	grayImage.allocate(kinect.width, kinect.height);
+	grayThreshNear.allocate(kinect.width, kinect.height);
+	grayThreshFar.allocate(kinect.width, kinect.height);
+	
+	nearThreshold = 230;
+	farThreshold = 70;
+	bThreshWithOpenCV = true;
+	
+	ofSetFrameRate(60);
+	
+	// zero the tilt on startup
+	angle = 0;
+	kinect.setCameraTiltAngle(angle);
+	
+	// start from the front
+	bDrawPointCloud = false;
 }
 
 //--------------------------------------------------------------
-void testApp::update(){
-#ifdef NI_ENABLE
-    if (openNIDevice.isContextReady()) {
-        openNIDevice.update();
-    }
-    
-    if (openNIPlayer.isContextReady() && openNIPlayer.isPlaying()) {
-        openNIPlayer.update();
-        rgbImg.setFromPixels(openNIPlayer.getImagePixels());
-        
-        
-        
-        if (isDrawDepthOverlay) {
-            depthImg.setFromPixels(openNIPlayer.getDepthPixels());
-        }
-        currentFrame = openNIPlayer.getCurrentFrame();
-    }
-    
-    if (videoPlayer.isLoaded() && videoPlayer.isPlaying()) {
-        videoPlayer.update();
-    }
+void testApp::update() {
+	
+	ofBackground(100, 100, 100);
+	
+	kinect.update();
+	
+	// there is a new frame and we are connected
+	if(kinect.isFrameNew()) {
+		
+		// load grayscale depth image from the kinect source
+		grayImage.setFromPixels(kinect.getDepthPixels(), kinect.width, kinect.height);
+		
+		// we do two thresholds - one for the far plane and one for the near plane
+		// we then do a cvAnd to get the pixels which are a union of the two thresholds
+		if(bThreshWithOpenCV) {
+			grayThreshNear = grayImage;
+			grayThreshFar = grayImage;
+			grayThreshNear.threshold(nearThreshold, true);
+			grayThreshFar.threshold(farThreshold);
+			cvAnd(grayThreshNear.getCvImage(), grayThreshFar.getCvImage(), grayImage.getCvImage(), NULL);
+		} else {
+			
+			// or we do it ourselves - show people how they can work with the pixels
+			unsigned char * pix = grayImage.getPixels();
+			
+			int numPixels = grayImage.getWidth() * grayImage.getHeight();
+			for(int i = 0; i < numPixels; i++) {
+				if(pix[i] < nearThreshold && pix[i] > farThreshold) {
+					pix[i] = 255;
+				} else {
+					pix[i] = 0;
+				}
+			}
+		}
+		
+		// update the cv images
+		grayImage.flagImageChanged();
+		
+		// find contours which are between the size of 20 pixels and 1/3 the w*h pixels.
+		// also, find holes is set to true so we will get interior contours as well....
+		contourFinder.findContours(grayImage, 10, (kinect.width*kinect.height)/2, 20, false);
+	}
+	
+#ifdef USE_TWO_KINECTS
+	kinect2.update();
 #endif
 }
 
 //--------------------------------------------------------------
-void testApp::draw(){
-
+void testApp::draw() {
+	
 	ofSetColor(255, 255, 255);
-
-#ifdef NI_ENABLE
-    if (openNIDevice.isNewFrame()) {
-        if (openNIDevice.isImageOn()) {
-            openNIDevice.drawImage(0, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
-        }
-        
-        openNIDevice.drawDepth(0, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
-    }
-    
-    if (openNIPlayer.isContextReady() && openNIPlayer.isPlaying()) {
-        openNIPlayer.drawDepth(0, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
-        openNIPlayer.drawImage(NI_VIEW_WIDTH, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
-        
-        if (isDrawDepthOverlay) {
-            //openNIPlayer.drawDepth(0, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
-            depthImg.draw(NI_VIEW_WIDTH, 0);
-        }
-    } else {
-        ofPushStyle();
-        ofSetColor(0);
-        ofFill();
-        ofRect(0, NI_VIEW_HEIGHT, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
-        ofPopStyle();
-    }
+	
+	if(bDrawPointCloud) {
+		easyCam.begin();
+		drawPointCloud();
+		easyCam.end();
+	} else {
+		// draw from the live kinect
+		kinect.drawDepth(10, 10, 400, 300);
+		kinect.draw(420, 10, 400, 300);
+		
+		grayImage.draw(10, 320, 400, 300);
+		contourFinder.draw(10, 320, 400, 300);
+		
+#ifdef USE_TWO_KINECTS
+		kinect2.draw(420, 320, 400, 300);
 #endif
-    
-    ofSetColor(255);
-    ofRect(0, 0, 200, 60);
-    
-    ofSetColor(0);
-	verdana.drawString("App    FPS: " + ofToString(ofGetFrameRate()), 10, 25);
-    verdana.drawString("OpenNI FPS: " + ofToString(openNIDevice.getFrameRate()), 10, 45);
+	}
+	
+	// draw instructions
+	ofSetColor(255, 255, 255);
+	stringstream reportStream;
+	reportStream << "accel is: " << ofToString(kinect.getMksAccel().x, 2) << " / "
+	<< ofToString(kinect.getMksAccel().y, 2) << " / "
+	<< ofToString(kinect.getMksAccel().z, 2) << endl
+	<< "press p to switch between images and point cloud, rotate the point cloud with the mouse" << endl
+	<< "using opencv threshold = " << bThreshWithOpenCV <<" (press spacebar)" << endl
+	<< "set near threshold " << nearThreshold << " (press: + -)" << endl
+	<< "set far threshold " << farThreshold << " (press: < >) num blobs found " << contourFinder.nBlobs
+	<< ", fps: " << ofGetFrameRate() << endl
+	<< "press c to close the connection and o to open it again, connection is: " << kinect.isConnected() << endl
+	<< "press UP and DOWN to change the tilt angle: " << angle << " degrees" << endl
+	<< "press 1-5 & 0 to change the led mode (mac/linux only)" << endl;
+	ofDrawBitmapString(reportStream.str(),20,652);
+}
 
+void testApp::drawPointCloud() {
+	int w = 640;
+	int h = 480;
+	ofMesh mesh;
+	mesh.setMode(OF_PRIMITIVE_POINTS);
+	int step = 2;
+	for(int y = 0; y < h; y += step) {
+		for(int x = 0; x < w; x += step) {
+			if(kinect.getDistanceAt(x, y) > 0) {
+				mesh.addColor(kinect.getColorAt(x,y));
+				mesh.addVertex(kinect.getWorldCoordinateAt(x, y));
+			}
+		}
+	}
+	glPointSize(3);
+	ofPushMatrix();
+	// the projected points are 'upside down' and 'backwards' 
+	ofScale(1, -1, -1);
+	ofTranslate(0, 0, -1000); // center the points a bit
+	glEnable(GL_DEPTH_TEST);
+	mesh.drawVertices();
+	glDisable(GL_DEPTH_TEST);
+	ofPopMatrix();
 }
 
 //--------------------------------------------------------------
-void testApp::exit(){
-#ifdef NI_ENABLE
-    openNIDevice.stop();
-    openNIPlayer.stop();
+void testApp::exit() {
+	kinect.setCameraTiltAngle(0); // zero the tilt on exit
+	kinect.close();
+	
+#ifdef USE_TWO_KINECTS
+	kinect2.close();
 #endif
-    
-    delete gui;
-}
-
-
-/*========================================================================
- *  Events
- *========================================================================
- */
-
-//--------------------------------------------------------------
-void testApp::keyPressed(int key){
-    
 }
 
 //--------------------------------------------------------------
-void testApp::keyReleased(int key){
-    switch (key) {
-        case 'd': {
-            isDrawDepthOverlay = !isDrawDepthOverlay;
-            break;
-        }
-            
-#ifdef NI_ENABLE
-        case 'i': {
-            if (openNIDevice.isImageOn()) {
-                openNIDevice.removeImageGenerator();
-            } else {
-                openNIDevice.addImageGenerator();
-            }
-            break;
-        }
-#endif
-        case 'o': {
-            
-            break;
-        }
-            
-        case '1':
-            openNIDevice.setDepthColoring(COLORING_CYCLIC_RAINBOW);
-            break;
-        case '2':
-            openNIDevice.setDepthColoring(COLORING_BLUES);
-            break;
-        case '3':
-            openNIDevice.setDepthColoring(COLORING_COUNT);
-            break;
-        case '4':
-            openNIDevice.setDepthColoring(COLORING_GREY);
-            break;
-        case '5':
-            openNIDevice.setDepthColoring(COLORING_PSYCHEDELIC);
-            break;
-        case '6':
-            openNIDevice.setDepthColoring(COLORING_PSYCHEDELIC_SHADES);
-            break;
-        case '7':
-            openNIDevice.setDepthColoring(COLORING_RAINBOW);
-            break;
-        case '8':
-            openNIDevice.setDepthColoring(COLORING_STATUS);
-            break;
-            
-        default:
-            break;
-    }
+void testApp::keyPressed (int key) {
+	switch (key) {
+		case ' ':
+			bThreshWithOpenCV = !bThreshWithOpenCV;
+			break;
+			
+		case'p':
+			bDrawPointCloud = !bDrawPointCloud;
+			break;
+			
+		case '>':
+		case '.':
+			farThreshold ++;
+			if (farThreshold > 255) farThreshold = 255;
+			break;
+			
+		case '<':
+		case ',':
+			farThreshold --;
+			if (farThreshold < 0) farThreshold = 0;
+			break;
+			
+		case '+':
+		case '=':
+			nearThreshold ++;
+			if (nearThreshold > 255) nearThreshold = 255;
+			break;
+			
+		case '-':
+			nearThreshold --;
+			if (nearThreshold < 0) nearThreshold = 0;
+			break;
+			
+		case 'w':
+			kinect.enableDepthNearValueWhite(!kinect.isDepthNearValueWhite());
+			break;
+			
+		case 'o':
+			kinect.setCameraTiltAngle(angle); // go back to prev tilt
+			kinect.open();
+			break;
+			
+		case 'c':
+			kinect.setCameraTiltAngle(0); // zero the tilt
+			kinect.close();
+			break;
+			
+		case '1':
+			kinect.setLed(ofxKinect::LED_GREEN);
+			break;
+			
+		case '2':
+			kinect.setLed(ofxKinect::LED_YELLOW);
+			break;
+			
+		case '3':
+			kinect.setLed(ofxKinect::LED_RED);
+			break;
+			
+		case '4':
+			kinect.setLed(ofxKinect::LED_BLINK_GREEN);
+			break;
+			
+		case '5':
+			kinect.setLed(ofxKinect::LED_BLINK_YELLOW_RED);
+			break;
+			
+		case '0':
+			kinect.setLed(ofxKinect::LED_OFF);
+			break;
+			
+		case OF_KEY_UP:
+			angle++;
+			if(angle>30) angle=30;
+			kinect.setCameraTiltAngle(angle);
+			break;
+			
+		case OF_KEY_DOWN:
+			angle--;
+			if(angle<-30) angle=-30;
+			kinect.setCameraTiltAngle(angle);
+			break;
+	}
 }
 
 //--------------------------------------------------------------
-void testApp::mouseMoved(int x, int y ){
-
-}
-
-//--------------------------------------------------------------
-void testApp::mouseDragged(int x, int y, int button){
-
-}
+void testApp::mouseDragged(int x, int y, int button)
+{}
 
 //--------------------------------------------------------------
-void testApp::mousePressed(int x, int y, int button){
-
-}
-
-//--------------------------------------------------------------
-void testApp::mouseReleased(int x, int y, int button){
-
-}
+void testApp::mousePressed(int x, int y, int button)
+{}
 
 //--------------------------------------------------------------
-void testApp::windowResized(int w, int h){
-
-}
+void testApp::mouseReleased(int x, int y, int button)
+{}
 
 //--------------------------------------------------------------
-void testApp::guiEvent(ofxUIEventArgs &e)
-{
-    ofLogVerbose("gui event, value: " + ofToString(playBtn->getValue()));
-    
-    string name = e.widget->getName();
-    int kind = e.widget->getKind();
-    
-    if (OFX_UI_WIDGET_IMAGEBUTTON) {
-        if ("LOAD" == name && 1 == loadBtn->getValue()) {
-            ofFileDialogResult result = ofSystemLoadDialog("Select a .oni file");
-            
-            if (result.bSuccess) {
-                string path = result.getPath();
-                ofFile oniFile(path);
-                
-                ofStringReplace(path, ".oni", ".mov");
-                ofLogVerbose(".mov file is " + path);
-                ofFile movFile(path);
-                
-                if (oniFile.exists() && "ONI" == ofToUpper(oniFile.getExtension())){
-                    oniFileName = result.getName();
-                }
-                
-//                if (movFile.exists() && "MOV" == ofToUpper(movFile.getExtension())) {
-//                    videoPlayer.closeMovie();
-//                    videoPlayer.loadMovie(movFile.path(), OF_QTKIT_DECODE_PIXELS_AND_TEXTURE);
-//                    videoPlayer.firstFrame();
-//                }
-                
-                ofLogVerbose(".oni file is " + oniFileName);
-                
-                openNIDevice.stop();
-                
-                openNIPlayer.startPlayer(oniFileName);
-                openNIPlayer.setPaused(true);
-                openNIPlayer.firstFrame();
-                
-                numTotalFrames = openNIPlayer.getTotalNumFrames();
-                ofLogVerbose("total frame: " + ofToString(numTotalFrames));
-                ofLogVerbose("total time : " + ofToString(numTotalFrames / 30) + " sec");
-            } else {
-                ofLogVerbose("User hit cancel");
-            }
-        } else if ("PLAY" == name && 1 == playBtn->getValue()) {
-            playBtn->setImage("gui/pause.png");
-            playBtn->setName("PAUSE");
-            
-            if (openNIPlayer.isPlaying()) {
-                openNIPlayer.setPaused(false);
-                
-                isONIPlaying = true;
-            }
-            
-            if (videoPlayer.isPlaying()) {
-                videoPlayer.setPaused(false);
-            } else {
-                videoPlayer.play();
-            }
-        } else if ("PAUSE" == name && 1 == playBtn->getValue()) {
-            playBtn->setImage("gui/play.png");
-            playBtn->setName("PLAY");
-            
-            if (openNIPlayer.isPlaying()) {
-                openNIPlayer.setPaused(true);
-                isONIPlaying = false;
-            }
-            
-            if (videoPlayer.isPlaying()) {
-                videoPlayer.setPaused(true);
-            }
-        } else if ("RECORD" == name && 1 == recordBtn->getValue()) {
-            recordBtn->setImage("gui/stop.png");
-            recordBtn->setName("STOP");
-            
-            if (!openNIDevice.isRecording()) {
-                newOniFileName = ofToDataPath(ofToString(ofGetTimestampString()) + ".oni");
-                openNIDevice.startRecording(newOniFileName);
-            }
-        } else if ("STOP" == name && 1 == recordBtn->getValue()) {
-            recordBtn->setImage("gui/record.png");
-            recordBtn->setName("RECORD");
-            
-            if (openNIDevice.isRecording()) {
-                openNIDevice.stopRecording();
-                
-                openNIPlayer.startPlayer(newOniFileName);
-                openNIPlayer.setPaused(true);
-            }
-        } else if ("REWIND" == name && 1 == rewindBtn->getValue()) {
-            openNIPlayer.previousFrame();
-        } else if ("FORWARD" == name && 1 == forwardBtn->getValue()) {
-            openNIPlayer.nextFrame();
-        }
-    }
-}
-
+void testApp::windowResized(int w, int h)
+{}
