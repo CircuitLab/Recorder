@@ -1,4 +1,4 @@
-bin/*Debug.app
+bin/*.app
 .DS_Store
 bin/data/*.oni
 bin/data/*.mp4

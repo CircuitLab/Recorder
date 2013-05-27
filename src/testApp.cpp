@@ -12,8 +12,11 @@ void testApp::setupGUI()
     rewindBtn = new ofxUIImageButton(42, 42, true, "gui/rewind.png", "REWIND");
     forwardBtn = new ofxUIImageButton(42, 42, true, "gui/forward.png", "FORWARD");
     
+    static ofxUISpacer* spacer = new ofxUISpacer(20, 42);
+    spacer->setColorBack(ofColor(0));
+    
     gui->addWidgetRight(loadBtn);
-    gui->addWidgetRight(new ofxUISpacer(20, 42));
+    gui->addWidgetRight(new ofxUISpacer(2, 42));
     gui->addWidgetRight(rewindBtn);
     gui->addWidgetRight(playBtn);
     gui->addWidgetRight(forwardBtn);
@@ -23,18 +26,18 @@ void testApp::setupGUI()
     ofAddListener(gui->newGUIEvent, this, &testApp::guiEvent);
     
     gui->setColorBack(ofColor(0));
-    gui->setWidgetColor(OFX_UI_WIDGET_COLOR_BACK, ofColor(125));
-    
+    gui->setWidgetColor(OFX_UI_WIDGET_COLOR_BACK, ofColor(255));
+    gui->setDrawWidgetPadding(false);
 }
 
 //--------------------------------------------------------------
 void testApp::setup()
 {
     ofSetFrameRate(60);
-    ofSetVerticalSync(true);
     ofEnableSmoothing();
     ofBackground(255);
     ofEnableAlphaBlending();
+    ofSetWindowTitle("Recorder");
     ofSetLogLevel(OF_LOG_VERBOSE);
 
 #ifdef NI_ENABLE
@@ -42,14 +45,9 @@ void testApp::setup()
     openNIDevice.addDepthGenerator();
     openNIDevice.addImageGenerator();
     openNIDevice.setDepthColoring(COLORING_CYCLIC_RAINBOW);
-    //openNIDevice.addDepthThreshold(500, 1000);
     openNIDevice.start();
     openNIDevice.setRegister(true);
-    // openNIDevice.addInfraGenerator(); // and uncomment this to see infrared generator
-                                        // or press the 'i' key when running
     
-    ofxOpenNIDepthThreshold depthThreshold = ofxOpenNIDepthThreshold(0, 10000, true, true, true, true, true);
-    openNIDevice.addDepthThreshold(depthThreshold);
     // ofxOpenNIDepthThreshold is overloaded, has defaults and can take a lot of different parameters, eg:
     // (ofxOpenNIROI OR) int _nearThreshold, int _farThreshold, bool _bUsePointCloud = false, bool _bUseMaskPixels = true,
     // bool _bUseMaskTexture = true, bool _bUseDepthPixels = false, bool _bUseDepthTexture = false,
