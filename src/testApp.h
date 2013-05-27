@@ -42,7 +42,7 @@ public:
     ofImage combinedImg;
     
     ofxUICanvas *gui;
-    ofxUIImageButton *loadBtn, *playBtn, *pauseBtn, *recordBtn, *stopBtn, *rewindBtn, *forwardBtn;
+    ofxUIImageButton *loadBtn, *playBtn, *pauseBtn, *recordBtn, *stopBtn, *rewindBtn, *forwardBtn, *removeBtn;
     void setupGUI();
     void guiEvent(ofxUIEventArgs &e);
 };

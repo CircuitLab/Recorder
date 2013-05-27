@@ -3,31 +3,42 @@
 //--------------------------------------------------------------
 void testApp::setupGUI()
 {
-    gui = new ofxUICanvas(0, NI_VIEW_HEIGHT, ofGetWidth(), 100);
+    gui = new ofxUICanvas(0, NI_VIEW_HEIGHT, ofGetWidth(), 150);
     
-    loadBtn = new ofxUIImageButton(42, 42, true, "gui/load.png", "LOAD");
-    playBtn = new ofxUIImageButton(42, 42, true, "gui/play.png", "PLAY");
-    recordBtn = new ofxUIImageButton(42, 42, true, "gui/record.png", "RECORD");
-    stopBtn = new ofxUIImageButton(42, 42, true, "gui/stop.png", "STOP");
-    rewindBtn = new ofxUIImageButton(42, 42, true, "gui/rewind.png", "REWIND");
-    forwardBtn = new ofxUIImageButton(42, 42, true, "gui/forward.png", "FORWARD");
+    loadBtn = new ofxUIImageButton(50, 50, true, "gui/file@2x.png", "LOAD");
+    playBtn = new ofxUIImageButton(50, 50, true, "gui/play@2x.png", "PLAY");
+    recordBtn = new ofxUIImageButton(50, 50, true, "gui/record@2x.png", "RECORD");
+    stopBtn = new ofxUIImageButton(50, 50, true, "gui/stop@2x.png", "STOP");
+    rewindBtn = new ofxUIImageButton(50, 50, true, "gui/rewind@2x.png", "REWIND");
+    forwardBtn = new ofxUIImageButton(50, 50, true, "gui/forward@2x.png", "FORWARD");
+    removeBtn = new ofxUIImageButton(290, 43, 15, 15, true, "gui/remove.png", "REMOVE");
+    removeBtn->setVisible(false);
     
-    static ofxUISpacer* spacer = new ofxUISpacer(20, 42);
-    spacer->setColorBack(ofColor(0));
+    static ofxUISpacer* spacer1 = new ofxUISpacer(1, 7);
+    static ofxUISpacer* spacer2 = new ofxUISpacer(ofGetWidth() / 2 - 190, 42);
+    static ofxUISpacer* spacer3 = new ofxUISpacer(10, 42);
+    spacer1->setDrawFill(false);
+    spacer1->setDrawBack(false);
+    spacer2->setDrawFill(false);
+    spacer2->setDrawBack(false);
+    spacer3->setDrawFill(false);
+    spacer3->setDrawBack(false);
     
-    gui->addWidgetRight(loadBtn);
-    gui->addWidgetRight(new ofxUISpacer(2, 42));
+    gui->addWidgetDown(spacer1);
+    gui->addWidgetDown(loadBtn);
+    gui->addWidget(removeBtn);
+    gui->addWidgetRight(spacer2);
+    gui->addWidgetRight(spacer3);
     gui->addWidgetRight(rewindBtn);
     gui->addWidgetRight(playBtn);
-    gui->addWidgetRight(forwardBtn);
     gui->addWidgetRight(recordBtn);
-    
+    gui->addWidgetRight(forwardBtn);
     
     ofAddListener(gui->newGUIEvent, this, &testApp::guiEvent);
     
     gui->setColorBack(ofColor(0));
     gui->setWidgetColor(OFX_UI_WIDGET_COLOR_BACK, ofColor(255));
-    gui->setDrawWidgetPadding(false);
+    gui->setAutoDraw(false);
 }
 
 //--------------------------------------------------------------
@@ -126,13 +137,17 @@ void testApp::draw(){
         ofPopStyle();
     }
 #endif
+
+    gui->draw();
     
     ofSetColor(255);
-    ofRect(0, 0, 200, 60);
-    
-    ofSetColor(0);
-	verdana.drawString("App    FPS: " + ofToString(ofGetFrameRate()), 10, 25);
-    verdana.drawString("OpenNI FPS: " + ofToString(openNIDevice.getFrameRate()), 10, 45);
+    verdana.drawString("ONI file name:\n" + oniFileName, 65, ofGetHeight() - 39);
+	verdana.drawString("App    FPS: " + ofToString(ofGetFrameRate()), ofGetWidth() - 200, ofGetHeight() - 45);
+    if (openNIPlayer.isPlaying()) {
+        verdana.drawString("OpenNI FPS: " + ofToString(openNIPlayer.getFrameRate()), ofGetWidth() - 200, ofGetHeight() - 25);
+    } else {
+        verdana.drawString("OpenNI FPS: " + ofToString(openNIDevice.getFrameRate()), ofGetWidth() - 200, ofGetHeight() - 25);
+    }
 
 }
 
@@ -259,28 +274,30 @@ void testApp::guiEvent(ofxUIEventArgs &e)
                     oniFileName = result.getName();
                 }
                 
-//                if (movFile.exists() && "MOV" == ofToUpper(movFile.getExtension())) {
-//                    videoPlayer.closeMovie();
-//                    videoPlayer.loadMovie(movFile.path(), OF_QTKIT_DECODE_PIXELS_AND_TEXTURE);
-//                    videoPlayer.firstFrame();
-//                }
-                
                 ofLogVerbose(".oni file is " + oniFileName);
                 
                 openNIDevice.stop();
                 
+                openNIPlayer.start();
                 openNIPlayer.startPlayer(oniFileName);
                 openNIPlayer.setPaused(true);
                 openNIPlayer.firstFrame();
+                
+                removeBtn->setVisible(true);
                 
                 numTotalFrames = openNIPlayer.getTotalNumFrames();
                 ofLogVerbose("total frame: " + ofToString(numTotalFrames));
                 ofLogVerbose("total time : " + ofToString(numTotalFrames / 30) + " sec");
             } else {
+                removeBtn->setVisible(false);
                 ofLogVerbose("User hit cancel");
             }
+        } else if ("REMOVE" == name && 1 == removeBtn->getValue()) {
+            removeBtn->setVisible(false);
+            oniFileName = "";
+            openNIPlayer.stop();
         } else if ("PLAY" == name && 1 == playBtn->getValue()) {
-            playBtn->setImage("gui/pause.png");
+            playBtn->setImage("gui/pause@2x.png");
             playBtn->setName("PAUSE");
             
             if (openNIPlayer.isPlaying()) {
@@ -295,7 +312,7 @@ void testApp::guiEvent(ofxUIEventArgs &e)
                 videoPlayer.play();
             }
         } else if ("PAUSE" == name && 1 == playBtn->getValue()) {
-            playBtn->setImage("gui/play.png");
+            playBtn->setImage("gui/play@2x.png");
             playBtn->setName("PLAY");
             
             if (openNIPlayer.isPlaying()) {
@@ -307,7 +324,7 @@ void testApp::guiEvent(ofxUIEventArgs &e)
                 videoPlayer.setPaused(true);
             }
         } else if ("RECORD" == name && 1 == recordBtn->getValue()) {
-            recordBtn->setImage("gui/stop.png");
+            recordBtn->setImage("gui/stop@2x.png");
             recordBtn->setName("STOP");
             
             if (!openNIDevice.isRecording()) {
@@ -315,7 +332,7 @@ void testApp::guiEvent(ofxUIEventArgs &e)
                 openNIDevice.startRecording(newOniFileName);
             }
         } else if ("STOP" == name && 1 == recordBtn->getValue()) {
-            recordBtn->setImage("gui/record.png");
+            recordBtn->setImage("gui/record@2x.png");
             recordBtn->setName("RECORD");
             
             if (openNIDevice.isRecording()) {
