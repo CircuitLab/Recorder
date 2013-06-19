@@ -55,20 +55,16 @@ void testApp::setup()
     openNIDevice.setupFromXML("openni/config/ofxopenni_config.xml");
     openNIDevice.addDepthGenerator();
     openNIDevice.addImageGenerator();
-    openNIDevice.setDepthColoring(COLORING_CYCLIC_RAINBOW);
+    openNIDevice.setDepthColoring(COLORING_RAINBOW);
     openNIDevice.start();
     openNIDevice.setRegister(true);
-    
-    // ofxOpenNIDepthThreshold is overloaded, has defaults and can take a lot of different parameters, eg:
-    // (ofxOpenNIROI OR) int _nearThreshold, int _farThreshold, bool _bUsePointCloud = false, bool _bUseMaskPixels = true,
-    // bool _bUseMaskTexture = true, bool _bUseDepthPixels = false, bool _bUseDepthTexture = false,
-    // int _pointCloudDrawSize = 2, int _pointCloudResolution = 2
     
     openNIPlayer.setup();
     openNIPlayer.setLogLevel(OF_LOG_ERROR);
     openNIPlayer.setRegister(true);
     
     isONIPlaying = false;
+    isONILoaded = false;
     isDrawDepthOverlay = true;
     
     rgbImg.allocate(NI_VIEW_WIDTH, NI_VIEW_HEIGHT, OF_IMAGE_COLOR_ALPHA);
@@ -85,11 +81,11 @@ void testApp::setup()
 //--------------------------------------------------------------
 void testApp::update(){
 #ifdef NI_ENABLE
-    if (openNIDevice.isContextReady()) {
+    if (openNIDevice.isContextReady() && !isONIPlaying) {
         openNIDevice.update();
     }
     
-    if (openNIPlayer.isContextReady() && openNIPlayer.isPlaying()) {
+    if (openNIPlayer.isContextReady() && isONILoaded && isONIPlaying) {
         openNIPlayer.update();
         rgbImg.setFromPixels(openNIPlayer.getImagePixels());
         
@@ -113,15 +109,7 @@ void testApp::draw(){
 	ofSetColor(255, 255, 255);
 
 #ifdef NI_ENABLE
-    if (openNIDevice.isNewFrame()) {
-        if (openNIDevice.isImageOn()) {
-            openNIDevice.drawImage(0, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
-        }
-        
-        openNIDevice.drawDepth(0, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
-    }
-    
-    if (openNIPlayer.isContextReady() && openNIPlayer.isPlaying()) {
+    if (isONILoaded) {
         openNIPlayer.drawDepth(0, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
         openNIPlayer.drawImage(NI_VIEW_WIDTH, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
         
@@ -130,11 +118,13 @@ void testApp::draw(){
             depthImg.draw(NI_VIEW_WIDTH, 0);
         }
     } else {
-        ofPushStyle();
-        ofSetColor(0);
-        ofFill();
-        ofRect(0, NI_VIEW_HEIGHT, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
-        ofPopStyle();
+        if (openNIDevice.isContextReady()) {
+            if (openNIDevice.isImageOn()) {
+                openNIDevice.drawImage(0, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
+            }
+            
+            openNIDevice.drawDepth(0, 0, NI_VIEW_WIDTH, NI_VIEW_HEIGHT);
+        }
     }
 #endif
 
@@ -276,7 +266,8 @@ void testApp::guiEvent(ofxUIEventArgs &e)
                 
                 ofLogVerbose(".oni file is " + oniFileName);
                 
-                openNIDevice.stop();
+                isONILoaded = true;
+                isONIPlaying = true;
                 
                 openNIPlayer.start();
                 openNIPlayer.startPlayer(oniFileName);
@@ -294,8 +285,12 @@ void testApp::guiEvent(ofxUIEventArgs &e)
             }
         } else if ("REMOVE" == name && 1 == removeBtn->getValue()) {
             removeBtn->setVisible(false);
+            
+            openNIPlayer.setPaused(true);
             oniFileName = "";
-            openNIPlayer.stop();
+            
+            isONILoaded = false;
+            isONIPlaying = false;
         } else if ("PLAY" == name && 1 == playBtn->getValue()) {
             playBtn->setImage("gui/pause@2x.png");
             playBtn->setName("PAUSE");
@@ -304,12 +299,6 @@ void testApp::guiEvent(ofxUIEventArgs &e)
                 openNIPlayer.setPaused(false);
                 
                 isONIPlaying = true;
-            }
-            
-            if (videoPlayer.isPlaying()) {
-                videoPlayer.setPaused(false);
-            } else {
-                videoPlayer.play();
             }
         } else if ("PAUSE" == name && 1 == playBtn->getValue()) {
             playBtn->setImage("gui/play@2x.png");

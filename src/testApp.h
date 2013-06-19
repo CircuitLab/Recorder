@@ -31,7 +31,7 @@ public:
 	ofxOpenNI openNIDevice, openNIPlayer;
     string oniFileName, newOniFileName;
     int numTotalFrames, currentFrame;
-    bool isONIPlaying;
+    bool isONIPlaying, isONILoaded;
     bool isDrawDepthOverlay;
     
     ofQTKitPlayer videoPlayer;
