@@ -20,7 +20,6 @@
 ![image](https://raw.github.com/CircuitLab/Recorder/master/lib/images/cap-02.png)
 
 The operations are super simple.  
-Hear's descriptions of each icon (L to R)
 
 ![image](https://raw.github.com/CircuitLab/Recorder/master/lib/images/file@2x.png)  
 __Load ONI File__  
@@ -31,7 +30,7 @@ __Previous frame__
 Rewind to previous frame when the ONI is playing.
 
 ![image](https://raw.github.com/CircuitLab/Recorder/master/lib/images/play@2x.png)
-![image](https://raw.github.com/CircuitLab/Recorder/master/lib/images/pause@2x.png)
+![image](https://raw.github.com/CircuitLab/Recorder/master/lib/images/pause@2x.png)  
 __Play / Pause__  
 
 ![image](https://raw.github.com/CircuitLab/Recorder/master/lib/images/record@2x.png)
@@ -45,3 +44,7 @@ Skip to next frame when the ONI is playing.
 
 
 ## Hardwares
+
+- Kinect
+- Mobile Battery
+- MacBook
