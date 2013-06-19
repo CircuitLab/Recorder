@@ -38,7 +38,7 @@ __Play / Pause__
 ![image](https://raw.github.com/CircuitLab/Recorder/master/lib/images/stop@2x.png)  
 __Record / Stop__  
 
-![image](https://raw.github.com/CircuitLab/Recorder/master/lib/images/forward@2x.png)
+![image](https://raw.github.com/CircuitLab/Recorder/master/lib/images/forward@2x.png)  
 __Next frame__  
 Skip to next frame when the ONI is playing.
 
